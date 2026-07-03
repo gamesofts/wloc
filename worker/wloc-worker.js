@@ -26,6 +26,8 @@ function servePage(url) {
 <title>WLOC 虚拟定位</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WLOC">
+<link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/wloc.jpg">
+<link rel="apple-touch-icon" sizes="144x144" href="https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/wloc.jpg">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
 <style>
