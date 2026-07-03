@@ -90,16 +90,6 @@ body { font-family:-apple-system,system-ui,"SF Pro","Helvetica Neue",sans-serif;
   <div class="card">
     <h3>选择目标位置</h3>
     <div class="coords" id="coords">点击地图或使用下方工具选择位置</div>
-    <div class="input-row" style="margin-top:10px">
-      <input id="altInput" type="number" step="0.1" placeholder="海拔(米) 留空=不改/自动" />
-      <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--gray);white-space:nowrap">
-        <input type="checkbox" id="altAuto" onchange="onAltAuto()" /> 自动查询地面海拔
-      </label>
-    </div>
-    <div class="input-row" style="margin-top:8px">
-      <input id="floorInput" type="number" step="1" min="1" placeholder="楼层(可选,自动海拔时叠加离地高度)" onchange="onAltAuto()" />
-      <input id="floorHeightInput" type="number" step="0.1" min="0" style="max-width:120px" placeholder="层高(米,默认3)" onchange="onAltAuto()" />
-    </div>
     <div class="row">
       <button class="btn btn-primary" id="saveBtn" onclick="save()">储存到设备</button>
       <button class="btn btn-secondary" onclick="addFav()">收藏位置</button>
@@ -155,7 +145,6 @@ body { font-family:-apple-system,system-ui,"SF Pro","Helvetica Neue",sans-serif;
 </div>
 <script>
 const SAVE_API = 'https://gs-loc.apple.com/wloc-settings/save';
-const GEO_API = location.origin + '/api/geo';
 const FAV_KEY = 'wloc_favorites';
 let lat = 22.544577, lon = 113.94114;
 let selected = false;
@@ -194,7 +183,6 @@ function setPos(newLat, newLon) {
   lat = newLat; lon = normLon(newLon); selected = true;
   marker.setLatLng([lat, lon]);
   document.getElementById('coords').textContent = '经度 ' + lon.toFixed(6) + '  纬度 ' + lat.toFixed(6);
-  autoQueryAlt();
 }
 
 function moveTo(newLat, newLon, zoom) {
@@ -303,9 +291,7 @@ function queryActive() {
       if (d.success && d.longitude && d.latitude) {
         activeLon = parseFloat(d.longitude);
         activeLat = parseFloat(d.latitude);
-        const alt = (d.altitude != null && d.altitude !== '') ? d.altitude : cachedAlt(activeLon, activeLat);
-        const altTxt = (alt != null && alt !== '') ? '  海拔 ' + alt + 'm' : '';
-        el.textContent = '经度 ' + activeLon.toFixed(6) + '  纬度 ' + activeLat.toFixed(6) + (d.accuracy ? '  精度 ' + d.accuracy + 'm' : '') + altTxt;
+        el.textContent = '经度 ' + activeLon.toFixed(6) + '  纬度 ' + activeLat.toFixed(6) + (d.accuracy ? '  精度 ' + d.accuracy + 'm' : '');
         renderFavs();
       } else {
         activeLon = null; activeLat = null;
@@ -318,18 +304,6 @@ function queryActive() {
     });
 }
 
-/* 海拔本地缓存: 设备脚本若为旧版(query 不返回 altitude), 用本地记录兜底显示 */
-function setCachedAlt(la, lo, alt) {
-  try { localStorage.setItem('wloc_saved_alt', JSON.stringify({ lat: la, lon: lo, alt })); } catch(e) {}
-}
-function cachedAlt(lo, la) {
-  try {
-    const c = JSON.parse(localStorage.getItem('wloc_saved_alt'));
-    if (c && c.alt != null && Math.abs(c.lon - lo) < 1e-6 && Math.abs(c.lat - la) < 1e-6) return c.alt;
-  } catch(e) {}
-  return null;
-}
-
 function clearActive() {
   if (!confirm('确定清除设备上已保存的坐标？清除后将使用模块默认参数或停止修改定位。')) return;
   fetch(SAVE_API + '?action=clear', { method:'GET', mode:'cors', cache:'no-store' })
@@ -337,63 +311,12 @@ function clearActive() {
     .then(d => {
       if (d.success) {
         activeLon = null; activeLat = null;
-        try { localStorage.removeItem('wloc_saved_alt'); } catch(e) {}
         document.getElementById('activeValue').textContent = '已清除';
         renderFavs();
         toast('已清除设备坐标');
       } else { toast('清除失败: ' + (d.error || ''), 3000); }
     })
     .catch(() => { toast('清除失败 - 请检查模块配置', 3000); });
-}
-
-/* ---- Altitude helpers ---- */
-async function onAltAuto() {
-  const auto = document.getElementById('altAuto').checked;
-  const inp = document.getElementById('altInput');
-  if (!auto) return;
-  if (!selected) { toast('请先选择位置再自动查询海拔'); document.getElementById('altAuto').checked = false; return; }
-  inp.placeholder = '查询中...';
-  const alt = await lookupAlt(lat, lon);
-  inp.placeholder = '海拔(米) 留空=不改/自动';
-  if (alt == null) { toast('海拔查询失败', 3000); return; }
-  inp.value = alt;
-  const fl = floorParam();
-  toast(fl ? ('海拔 ' + alt + ' m (含楼层)') : ('地面海拔 ' + alt + ' m'));
-}
-// 读取楼层参数, 返回可拼接的 query 字符串(无楼层则空)
-function floorParam() {
-  const f = (document.getElementById('floorInput').value || '').trim();
-  if (f === '' || Number.isNaN(parseInt(f, 10))) return '';
-  let qs = '&floor=' + parseInt(f, 10);
-  const fh = (document.getElementById('floorHeightInput').value || '').trim();
-  if (fh !== '' && !Number.isNaN(parseFloat(fh))) qs += '&floorHeight=' + parseFloat(fh);
-  return qs;
-}
-async function lookupAlt(la, lo) {
-  try {
-    const r = await fetch(GEO_API + '?format=json&lat=' + la + '&lon=' + lo + '&cs=none' + floorParam(), { mode:'cors', cache:'no-store' });
-    const d = await r.json();
-    return (d && typeof d.alt === 'number') ? d.alt : null;
-  } catch (e) { return null; }
-}
-// 选点即自动查海拔, 自动回填到海拔框(每次选点都会刷新; 旧请求被新选点取代时丢弃)
-let altReqToken = 0;
-async function autoQueryAlt() {
-  const inp = document.getElementById('altInput');
-  const token = ++altReqToken;
-  inp.placeholder = '查询中...';
-  const alt = await lookupAlt(lat, lon);
-  if (token !== altReqToken) return;
-  inp.placeholder = '海拔(米) 留空=不改/自动';
-  if (alt == null) return;
-  inp.value = alt;
-}
-// 计算本次要写入的海拔: 手填优先, 勾选自动则查询, 否则 null(不改)
-async function resolveAlt() {
-  const raw = (document.getElementById('altInput').value || '').trim();
-  if (raw !== '' && !Number.isNaN(parseFloat(raw))) return parseFloat(raw);
-  if (document.getElementById('altAuto').checked) return await lookupAlt(lat, lon);
-  return null;
 }
 
 /* ---- Save to device ---- */
@@ -403,19 +326,15 @@ async function save() {
   btn.textContent = '储存中...'; btn.disabled = true;
   showError(false);
   try {
-    const alt = await resolveAlt();
-    const altQs = (alt != null && !Number.isNaN(alt)) ? '&alt=' + alt : '';
-    const r = await fetch(SAVE_API + '?lon=' + lon + '&lat=' + lat + '&acc=25' + altQs, {
+    const r = await fetch(SAVE_API + '?lon=' + lon + '&lat=' + lat + '&acc=25', {
       method: 'GET', mode: 'cors', cache: 'no-store'
     });
     const d = await r.json();
     if (d.success) {
       activeLon = lon; activeLat = lat;
-      setCachedAlt(lat, lon, (alt != null && !Number.isNaN(alt)) ? alt : null);
-      const altTxt = (alt != null && !Number.isNaN(alt)) ? '  海拔 ' + alt + 'm' : '';
       btn.textContent = '\\u2713 已储存'; btn.className = 'btn btn-primary success';
-      document.getElementById('status').textContent = '\\u2713 已写入: ' + lon.toFixed(6) + ', ' + lat.toFixed(6) + altTxt + ' \\u00b7 ' + new Date().toLocaleTimeString('zh-CN');
-      document.getElementById('activeValue').textContent = '经度 ' + lon.toFixed(6) + '  纬度 ' + lat.toFixed(6) + '  精度 25m' + altTxt;
+      document.getElementById('status').textContent = '\\u2713 已写入: ' + lon.toFixed(6) + ', ' + lat.toFixed(6) + ' \\u00b7 ' + new Date().toLocaleTimeString('zh-CN');
+      document.getElementById('activeValue').textContent = '经度 ' + lon.toFixed(6) + '  纬度 ' + lat.toFixed(6) + '  精度 25m';
       renderFavs();
       toast('\\u2713 坐标已写入设备，下次定位生效');
       setTimeout(() => { btn.textContent='储存到设备'; btn.className='btn btn-primary'; btn.disabled=false; }, 2500);
