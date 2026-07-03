@@ -18,15 +18,18 @@
 ## 使用方法
 
 ### 1. 安装模块（一次性）
-订阅对应平台的模块并启用 MITM。
+订阅对应平台的模块并启用 MITM：
+
+- Surge：`https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/modules/wloc.sgmodule`
+- Loon：`https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/modules/wloc.lpx`
+- Stash：`https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/modules/wloc.stoverride`
+- Quantumult X：`https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/modules/wloc.conf`
+- Shadowrocket：`https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/modules/wloc.module`
 
 ### 2. 打开选点页面
-在 Safari 中打开公共选点页面（建议添加到主屏幕）:
-```
-https://你的worker域名/
-```
+在 Safari 中打开 <https://wloc.gamesofts.net>（建议添加到主屏幕）。
 
-> Worker 是纯静态页面，不存储任何数据。坐标直接写入你的设备本地。
+> Worker 不存储用户数据。坐标直接写入你的设备本地。
 
 ### 3. 选择位置
 - **点击地图** — 直接点选
@@ -35,22 +38,49 @@ https://你的worker域名/
 - **当前位置** — 使用浏览器定位
 
 ### 4. 储存到设备
-点击「� 储存到设备」→ 显示 ✓ 即成功。
+点击“储存到设备”，显示 ✓ 即成功。
+
+### 5. 使用快捷指令
+
+- [wloc 设置地理位置](https://www.icloud.com/shortcuts/a82717d8fdad4e6280866fcf911173f7)
+- [wloc 清理恢复位置](https://www.icloud.com/shortcuts/f42632d406504f24a2cd163af4fe012f)
+
+地图链接解析接口应为：
+
+```text
+https://wloc.gamesofts.net/api/parse
+```
+
+如果导入的旧版快捷指令仍使用其他 Worker 地址，请在快捷指令中替换。
 
 ---
 
 ## 部署公共选点页面
 
-Worker 是纯静态页面服务，无需任何绑定：
+Worker 无需 KV、数据库或其他资源绑定：
+
+```bash
+git clone --branch geo --single-branch https://github.com/gamesofts/wloc.git
+cd wloc/worker
+npm install
+npx wrangler login
+npm run deploy
+```
+
+已部署的生产地址：
+
+```text
+https://wloc.gamesofts.net
+```
+
+本项目不需要 KV、数据库或环境变量。
+
+也可以在已有检出中运行：
 
 ```bash
 cd worker
 npx wrangler deploy
 ```
-
-或在 CF Dashboard → Workers → 新建 Worker → 粘贴 `wloc-worker.js` → 部署。
-
-不需要 KV、不需要数据库、不需要环境变量。
 
 ---
 
@@ -79,7 +109,7 @@ MITM 主机名: `gs-loc.apple.com, gs-loc-cn.apple.com`（已包含在模块中�
 
 ## 备选：手动编辑（BoxJS）
 
-不使用选点页面时，可在 BoxJS 中直接编辑 `wloc_settings`:
+不使用选点页面时，可在 BoxJS 中直接编辑 `wloc_settings_v2`：
 ```json
 {"longitude":121.4737,"latitude":31.2304,"accuracy":25}
 ```

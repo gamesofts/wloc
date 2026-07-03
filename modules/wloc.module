@@ -1,13 +1,13 @@
 #!name=Apple WLOC 定位修改
-#!desc=修改 Apple 网络定位返回坐标(经纬度+精度，海拔保持原始值) (Shadowrocket 小火箭) | 选点页面: https://wloc.gamesofts.net/
+#!desc=修改 Apple 网络定位返回坐标(经纬度+精度，海拔保持原始值) (Shadowrocket 小火箭) | 快捷指令: 设置 https://www.icloud.com/shortcuts/a82717d8fdad4e6280866fcf911173f7 清理 https://www.icloud.com/shortcuts/f42632d406504f24a2cd163af4fe012f | 选点页面: https://wloc.gamesofts.net/
 #!author=Gamesofts Rewrite
 #!homepage=https://github.com/gamesofts/wloc
-#!icon=https://raw.githubusercontent.com/gamesofts/wloc/geo/wloc.jpg
+#!icon=https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/wloc.jpg
 #!category=Tools
 
 [Script]
-Apple WLOC = type=http-response,pattern=^https?:\/\/gs-loc(-cn)?\.apple\.com\/clls\/wloc,requires-body=1,binary-body-mode=1,max-size=0,timeout=30,script-path=https://raw.githubusercontent.com/gamesofts/wloc/geo/dist/wloc.js,argument=longitude=113.94114&latitude=22.544577&accuracy=25&logLevel=info
-WLOC Settings = type=http-request,pattern=^https?:\/\/gs-loc(-cn)?\.apple\.com\/wloc-settings\/save,requires-body=0,max-size=0,timeout=10,script-path=https://raw.githubusercontent.com/gamesofts/wloc/geo/dist/wloc-settings.js
+Apple WLOC = type=http-response,pattern=^https?:\/\/gs-loc(-cn)?\.apple\.com\/clls\/wloc,requires-body=1,binary-body-mode=1,max-size=0,timeout=30,script-path=https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/dist/wloc.js,argument=longitude=113.94114&latitude=22.544577&accuracy=25&logLevel=info
+WLOC Settings = type=http-request,pattern=^https?:\/\/gs-loc(-cn)?\.apple\.com\/wloc-settings\/save,requires-body=0,max-size=0,timeout=10,script-path=https://raw.githubusercontent.com/gamesofts/wloc/refs/heads/geo/dist/wloc-settings.js
 
 [MITM]
 hostname = %APPEND% gs-loc.apple.com, gs-loc-cn.apple.com
