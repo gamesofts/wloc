@@ -200,6 +200,24 @@ function showError(show) {
   document.getElementById('errorBanner').style.display = show ? 'block' : 'none';
 }
 
+function simulatedAltitude() {
+  const baseline = 5 + Math.random() * 10;
+  const noise = (Math.random() - 0.5) * 0.6;
+  return Math.min(15, Math.max(5, baseline + noise));
+}
+
+function simulatedAccuracy() {
+  const baseline = 18 + Math.random() * 14;
+  const noise = (Math.random() - 0.5) * 1.8;
+  return Math.max(10, baseline + noise);
+}
+
+function simulatedAltitudeAccuracy() {
+  const baseline = 4 + Math.random() * 14;
+  const noise = (Math.random() - 0.5) * 1.4;
+  return Math.min(18, Math.max(3, baseline + noise));
+}
+
 /* ---- Favorites (localStorage) ---- */
 function getFavs() {
   try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch(e) { return []; }
@@ -291,7 +309,11 @@ function queryActive() {
       if (d.success && d.longitude && d.latitude) {
         activeLon = parseFloat(d.longitude);
         activeLat = parseFloat(d.latitude);
-        el.textContent = '经度 ' + activeLon.toFixed(6) + '  纬度 ' + activeLat.toFixed(6) + (d.accuracy ? '  精度 ' + d.accuracy + 'm' : '');
+        const alt = Number(d.altitude);
+        const altTxt = Number.isFinite(alt) ? '  海拔 ' + alt + 'm' : '';
+        const altAcc = Number(d.altitudeAccuracy);
+        const altAccTxt = Number.isFinite(altAcc) ? '  海拔精度 ' + altAcc + 'm' : '';
+        el.textContent = '经度 ' + activeLon.toFixed(6) + '  纬度 ' + activeLat.toFixed(6) + (d.accuracy ? '  精度 ' + d.accuracy + 'm' : '') + altTxt + altAccTxt;
         renderFavs();
       } else {
         activeLon = null; activeLat = null;
@@ -326,15 +348,23 @@ async function save() {
   btn.textContent = '储存中...'; btn.disabled = true;
   showError(false);
   try {
-    const r = await fetch(SAVE_API + '?lon=' + lon + '&lat=' + lat + '&acc=25', {
+    const alt = simulatedAltitude();
+    const acc = simulatedAccuracy();
+    const altAcc = simulatedAltitudeAccuracy();
+    const r = await fetch(SAVE_API + '?lon=' + lon + '&lat=' + lat + '&acc=' + acc + '&alt=' + alt + '&altAcc=' + altAcc, {
       method: 'GET', mode: 'cors', cache: 'no-store'
     });
     const d = await r.json();
     if (d.success) {
       activeLon = lon; activeLat = lat;
+      const savedAlt = Number.isFinite(Number(d.altitude)) ? Number(d.altitude) : alt;
+      const savedAcc = Number.isFinite(Number(d.accuracy)) ? Number(d.accuracy) : acc;
+      const savedAltAcc = Number.isFinite(Number(d.altitudeAccuracy)) ? Number(d.altitudeAccuracy) : altAcc;
+      const altTxt = '  海拔 ' + savedAlt + 'm';
+      const altAccTxt = '  海拔精度 ' + savedAltAcc + 'm';
       btn.textContent = '\\u2713 已储存'; btn.className = 'btn btn-primary success';
-      document.getElementById('status').textContent = '\\u2713 已写入: ' + lon.toFixed(6) + ', ' + lat.toFixed(6) + ' \\u00b7 ' + new Date().toLocaleTimeString('zh-CN');
-      document.getElementById('activeValue').textContent = '经度 ' + lon.toFixed(6) + '  纬度 ' + lat.toFixed(6) + '  精度 25m';
+      document.getElementById('status').textContent = '\\u2713 已写入: ' + lon.toFixed(6) + ', ' + lat.toFixed(6) + altTxt + altAccTxt + ' \\u00b7 ' + new Date().toLocaleTimeString('zh-CN');
+      document.getElementById('activeValue').textContent = '经度 ' + lon.toFixed(6) + '  纬度 ' + lat.toFixed(6) + '  精度 ' + savedAcc + 'm' + altTxt + altAccTxt;
       renderFavs();
       toast('\\u2713 坐标已写入设备，下次定位生效');
       setTimeout(() => { btn.textContent='储存到设备'; btn.className='btn btn-primary'; btn.disabled=false; }, 2500);

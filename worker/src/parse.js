@@ -88,10 +88,6 @@ export async function parseCoords(raw) {
   throw new Error("未能从链接中解析出经纬度");
 }
 
-export function round6(n) {
-  return Math.round(Number(n) * 1e6) / 1e6;
-}
-
 const GCJ_A = 6378245.0;
 const GCJ_EE = 0.00669342162296594323;
 

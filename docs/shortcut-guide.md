@@ -6,7 +6,7 @@
 用户在手机 Safari 打开选点页面
   → 地图选位置 / 搜索地名 / 粘贴地图链接
   → 点击「储存到设备」
-  → 页面请求 https://gs-loc.apple.com/wloc-settings/save?lon=x&lat=y
+  → 页面请求 https://gs-loc.apple.com/wloc-settings/save?lon=x&lat=y&acc=x&alt=x&altAcc=x
   → 代理模块拦截请求 → wloc-settings.js 写入 $persistentStore
   → 下次 Apple 定位触发 → wloc.js 读取坐标 → 修改定位响应
 ```
@@ -111,7 +111,7 @@ MITM 主机名: `gs-loc.apple.com, gs-loc-cn.apple.com`（已包含在模块中�
 
 不使用选点页面时，可在 BoxJS 中直接编辑 `wloc_settings_v2`：
 ```json
-{"longitude":121.4737,"latitude":31.2304,"accuracy":25}
+{"longitude":121.47370123456789,"latitude":31.23041234567891,"accuracy":24.386917201432,"altitude":8.7456923812043,"altitudeAccuracy":11.9328401286734}
 ```
 
 优先级: 已储存坐标 > 模块参数 > 默认值

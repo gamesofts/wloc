@@ -1,6 +1,6 @@
 # Apple WLOC 定位修改
 
-修改 Apple 网络定位服务（Wi-Fi/基站）返回的经纬度和精度，同时保留原始定位响应中的海拔值。在线选点、地图分享链接和快捷指令最终都将坐标写入设备本地。
+修改 Apple 网络定位服务（Wi-Fi/基站）返回的经纬度、精度、海拔和海拔精度。在线选点、地图分享链接和快捷指令最终都将坐标写入设备本地。
 
 ## 订阅地址
 
@@ -66,8 +66,7 @@ https://wloc.gamesofts.net/api/parse
   → 请求 gs-loc.apple.com/wloc-settings/save
   → wloc-settings.js 写入设备本地 wloc_settings_v2
   → Apple WLOC 返回二进制定位响应
-  → wloc.js 修改经纬度和精度
-  → 原始海拔字段保持不变
+  → wloc.js 修改经纬度、精度、海拔和海拔精度
 ```
 
 数据优先级：设备已储存坐标 > 模块参数 > 默认透传模式。
@@ -77,9 +76,11 @@ https://wloc.gamesofts.net/api/parse
 | longitude | 目标经度 | `null`（透传） |
 | latitude | 目标纬度 | `null`（透传） |
 | accuracy | 水平精度（米） | `25` |
+| altitude | 海拔（米） | 随模拟坐标一并生成 |
+| altitudeAccuracy | 海拔精度（米） | 随模拟坐标一并生成 |
 | logLevel | 日志级别 | `info` |
 
-每次响应会在目标坐标附近加入与 `accuracy` 匹配的连续微扰。海拔不接受配置：原响应有值则原样保留，没有则不补写。
+每次响应会在目标坐标附近加入与 `accuracy` 匹配的连续微扰。海拔也会以已保存的目标海拔为中心，结合 `altitudeAccuracy` 生成连续微扰后的生效海拔，并保持在 5m-15m 范围内。`accuracy`、`altitude` 和 `altitudeAccuracy` 会作为模拟定位结果的一部分生成、保存并注入响应，使用自然浮点形态，不在页面提供手动设置入口。
 
 ## 恢复真实定位
 
@@ -91,7 +92,7 @@ https://wloc.gamesofts.net/api/parse
 
 - 当前生效坐标：保存在代理工具的 `$persistentStore`，键名为 `wloc_settings_v2`。
 - 收藏位置：保存在浏览器 `localStorage`。
-- 旧数据中的 `altitude` 会被忽略，下次保存位置时自然移除。
+- 已储存的 `accuracy`、`altitude` 和 `altitudeAccuracy` 会随经纬度一起生效；清除数据后恢复透传。
 - Worker 不使用 KV、数据库或用户账户。
 
 ## 自部署 Worker

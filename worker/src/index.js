@@ -1,6 +1,6 @@
 import { Hono } from "hono/tiny";
 import { getPageHtml } from "./page.js";
-import { parseCoords, gcj02ToWgs84, round6 } from "./parse.js";
+import { parseCoords, gcj02ToWgs84 } from "./parse.js";
 
 const app = new Hono();
 
@@ -21,8 +21,6 @@ app.get("/api/parse", async (c) => {
     let { lat, lon, name, src } = await parseCoords(raw);
     const needConv = cs === "gcj" || (cs !== "none" && (src === "amap" || src === "apple"));
     if (needConv) ({ lat, lon } = gcj02ToWgs84(lat, lon));
-    lat = round6(lat);
-    lon = round6(lon);
     name = name || "";
     c.header("Access-Control-Allow-Origin", "*");
     if (fmt === "json") return c.json({ lat, lon, name });
