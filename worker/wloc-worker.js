@@ -187,24 +187,6 @@ function showError(show) {
   document.getElementById('errorBanner').style.display = show ? 'block' : 'none';
 }
 
-function simulatedAltitude() {
-  const baseline = 5 + Math.random() * 10;
-  const noise = (Math.random() - 0.5) * 0.6;
-  return Math.min(15, Math.max(5, baseline + noise));
-}
-
-function simulatedAccuracy() {
-  const baseline = 18 + Math.random() * 14;
-  const noise = (Math.random() - 0.5) * 1.8;
-  return Math.max(10, baseline + noise);
-}
-
-function simulatedAltitudeAccuracy() {
-  const baseline = 4 + Math.random() * 14;
-  const noise = (Math.random() - 0.5) * 1.4;
-  return Math.min(18, Math.max(3, baseline + noise));
-}
-
 /* ---- Favorites (localStorage) ---- */
 function getFavs() {
   try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch(e) { return []; }
@@ -296,11 +278,7 @@ function queryActive() {
       if (d.success && d.longitude && d.latitude) {
         activeLon = parseFloat(d.longitude);
         activeLat = parseFloat(d.latitude);
-        const alt = Number(d.altitude);
-        const altTxt = Number.isFinite(alt) ? '  \\u6d77\\u62d4 ' + alt + 'm' : '';
-        const altAcc = Number(d.altitudeAccuracy);
-        const altAccTxt = Number.isFinite(altAcc) ? '  \\u6d77\\u62d4\\u7cbe\\u5ea6 ' + altAcc + 'm' : '';
-        el.textContent = '\\u7ecf\\u5ea6 ' + activeLon.toFixed(6) + '  \\u7eac\\u5ea6 ' + activeLat.toFixed(6) + (d.accuracy ? '  \\u7cbe\\u5ea6 ' + d.accuracy + 'm' : '') + altTxt + altAccTxt;
+        el.textContent = '\\u7ecf\\u5ea6 ' + activeLon.toFixed(6) + '  \\u7eac\\u5ea6 ' + activeLat.toFixed(6);
         renderFavs();
       } else {
         activeLon = null; activeLat = null;
@@ -335,23 +313,15 @@ async function save() {
   btn.textContent = '\\u50a8\\u5b58\\u4e2d...'; btn.disabled = true;
   showError(false);
   try {
-    const alt = simulatedAltitude();
-    const acc = simulatedAccuracy();
-    const altAcc = simulatedAltitudeAccuracy();
-    const r = await fetch(SAVE_API + '?lon=' + lon + '&lat=' + lat + '&acc=' + acc + '&alt=' + alt + '&altAcc=' + altAcc, {
+    const r = await fetch(SAVE_API + '?lon=' + lon + '&lat=' + lat, {
       method: 'GET', mode: 'cors', cache: 'no-store'
     });
     const d = await r.json();
     if (d.success) {
       activeLon = lon; activeLat = lat;
-      const savedAlt = Number.isFinite(Number(d.altitude)) ? Number(d.altitude) : alt;
-      const savedAcc = Number.isFinite(Number(d.accuracy)) ? Number(d.accuracy) : acc;
-      const savedAltAcc = Number.isFinite(Number(d.altitudeAccuracy)) ? Number(d.altitudeAccuracy) : altAcc;
-      const altTxt = '  \\u6d77\\u62d4 ' + savedAlt + 'm';
-      const altAccTxt = '  \\u6d77\\u62d4\\u7cbe\\u5ea6 ' + savedAltAcc + 'm';
       btn.textContent = '\\u2713 \\u5df2\\u50a8\\u5b58'; btn.className = 'btn btn-primary success';
-      document.getElementById('status').textContent = '\\u2713 \\u5df2\\u5199\\u5165: ' + lon.toFixed(6) + ', ' + lat.toFixed(6) + altTxt + altAccTxt + ' \\u00b7 ' + new Date().toLocaleTimeString('zh-CN');
-      document.getElementById('activeValue').textContent = '\\u7ecf\\u5ea6 ' + lon.toFixed(6) + '  \\u7eac\\u5ea6 ' + lat.toFixed(6) + '  \\u7cbe\\u5ea6 ' + savedAcc + 'm' + altTxt + altAccTxt;
+      document.getElementById('status').textContent = '\\u2713 \\u5df2\\u5199\\u5165: ' + lon.toFixed(6) + ', ' + lat.toFixed(6) + ' \\u00b7 ' + new Date().toLocaleTimeString('zh-CN');
+      document.getElementById('activeValue').textContent = '\\u7ecf\\u5ea6 ' + lon.toFixed(6) + '  \\u7eac\\u5ea6 ' + lat.toFixed(6);
       renderFavs();
       toast('\\u2713 \\u5750\\u6807\\u5df2\\u5199\\u5165\\u8bbe\\u5907\\uff0c\\u4e0b\\u6b21\\u5b9a\\u4f4d\\u751f\\u6548');
       setTimeout(() => { btn.textContent='\\u50a8\\u5b58\\u5230\\u8bbe\\u5907'; btn.className='btn btn-primary'; btn.disabled=false; }, 2500);

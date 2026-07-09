@@ -87,52 +87,45 @@ test("README exposes shortcuts, troubleshooting, and self-deployment", () => {
   assert.ok(readme.includes("https://wloc.gamesofts.net/api/parse"));
 });
 
-test("simulated location metadata is injected as natural numbers", () => {
-  assert.ok(pageSource.includes("function simulatedAltitude()"));
-  const altitudeGenerator = pageSource.match(
-    /function simulatedAltitude\(\) \{[\s\S]*?\n\}/,
-  )?.[0] ?? "";
-  assert.ok(pageSource.includes("const baseline = 5 + Math.random() * 10"));
-  assert.ok(pageSource.includes("const noise = (Math.random() - 0.5) * 0.6"));
-  assert.equal(altitudeGenerator.includes("toFixed"), false);
-  assert.ok(pageSource.includes("&alt=' + alt"));
-  assert.ok(pageSource.includes("function simulatedAccuracy()"));
-  assert.ok(pageSource.includes("&acc=' + acc"));
-  assert.ok(pageSource.includes("function simulatedAltitudeAccuracy()"));
-  const altitudeAccuracyGenerator = pageSource.match(
-    /function simulatedAltitudeAccuracy\(\) \{[\s\S]*?\n\}/,
-  )?.[0] ?? "";
-  assert.ok(pageSource.includes("const baseline = 4 + Math.random() * 14"));
-  assert.ok(pageSource.includes("const noise = (Math.random() - 0.5) * 1.4"));
-  assert.ok(pageSource.includes("Math.min(18, Math.max(3, baseline + noise))"));
-  assert.equal(altitudeAccuracyGenerator.includes("toFixed"), false);
-  assert.ok(pageSource.includes("&altAcc=' + altAcc"));
+test("simulated location metadata is computed during response patching", () => {
+  assert.equal(pageSource.includes("function simulatedAltitude()"), false);
+  assert.equal(pageSource.includes("function simulatedAccuracy()"), false);
+  assert.equal(pageSource.includes("function simulatedAltitudeAccuracy()"), false);
+  assert.equal(pageSource.includes("&alt=' + alt"), false);
+  assert.equal(pageSource.includes("&altAcc=' + altAcc"), false);
+  assert.equal(pageSource.includes("&acc=' + acc"), false);
   assert.equal(pageSource.includes("&acc=25"), false);
   assert.equal(pageSource.includes("altInput"), false);
   assert.equal(pageSource.includes("altAuto"), false);
 
-  assert.ok(settingsScript.includes("altitude:o"));
-  assert.ok(settingsScript.includes("altitudeAccuracy:p"));
-  assert.ok(settingsScript.includes("l.get(\"altAcc\")"));
-  assert.ok(settingsScript.includes("parseFloat(l.get(\"acc\")"));
+  assert.equal(settingsScript.includes("altitude:"), false);
+  assert.equal(settingsScript.includes("altitudeAccuracy"), false);
+  assert.equal(settingsScript.includes("l.get(\"altAcc\")"), false);
+  assert.equal(settingsScript.includes("l.get(\"acc\")"), false);
   assert.ok(locationScript.includes("Math.round(100*t.altitude)"));
   assert.ok(locationScript.includes("Math.round(100*t.altitudeAccuracy)"));
   assert.ok(locationScript.includes("6===e.fieldNo&&0===e.wireType"));
+  assert.ok(locationScript.includes("function simulatedAltitude()"));
+  assert.ok(locationScript.includes("function nextVerticalAccuracy("));
+  assert.ok(locationScript.includes("30+(Math.random()-.5)*8"));
+  assert.ok(locationScript.includes("altitudeAccuracy:b"));
   assert.ok(locationScript.includes("function nextAltitudeJitter("));
-  assert.ok(locationScript.includes("targetAltitude:g?h:null"));
-  assert.ok(locationScript.includes("altitudeJitter:g?u:null"));
+  assert.ok(locationScript.includes("targetAltitude:g"));
+  assert.ok(locationScript.includes("altitudeJitter:u"));
   assert.ok(locationScript.includes("altitude:f"));
   assert.ok(locationScript.includes("生效海拔="));
   assert.ok(
     locationScript.includes("e.accuracy&&(r.accuracy=parseFloat(e.accuracy))"),
   );
-  assert.ok(
+  assert.equal(
     locationScript.includes("Pe(a.altitude)&&(r.altitude=parseFloat(a.altitude))"),
+    false,
   );
-  assert.ok(
+  assert.equal(
     locationScript.includes(
       "Pe(a.altitudeAccuracy)&&(r.altitudeAccuracy=parseFloat(a.altitudeAccuracy))",
     ),
+    false,
   );
 });
 
