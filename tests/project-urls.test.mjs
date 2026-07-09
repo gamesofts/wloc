@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
 
 const moduleNames = (await readdir(new URL("../modules/", import.meta.url)))
   .filter((name) => name.startsWith("wloc."));
@@ -112,9 +113,10 @@ test("simulated location metadata is computed during response patching", () => {
   assert.ok(locationScript.includes("function simulatedAltitude()"));
   assert.ok(locationScript.includes("function nextVerticalAccuracy("));
   assert.ok(locationScript.includes("30+(Math.random()-.5)*8"));
-  assert.ok(locationScript.includes("altitudeAccuracy:b"));
+  assert.ok(locationScript.includes("altitudeAccuracy:m"));
   assert.ok(locationScript.includes("function nextAltitudeJitter("));
-  assert.ok(locationScript.includes("targetAltitude:g"));
+  assert.ok(locationScript.includes("metadataVersion:2"));
+  assert.ok(locationScript.includes("targetAltitude:y"));
   assert.ok(locationScript.includes("altitudeJitter:u"));
   assert.ok(locationScript.includes("altitude:f"));
   assert.ok(locationScript.includes("生效海拔="));
@@ -131,6 +133,72 @@ test("simulated location metadata is computed during response patching", () => {
     ),
     false,
   );
+});
+
+test("simulated altitude ignores stale unversioned jitter state", () => {
+  const store = {
+    wloc_jitter_v1: JSON.stringify({
+      targetLongitude: 121.123456789,
+      targetLatitude: 31.987654321,
+      accuracy: 25,
+      targetAltitude: 5,
+      altitudeAccuracy: 30,
+      east: 0,
+      north: 0,
+      altitudeJitter: 0,
+      updatedAt: 1000,
+    }),
+  };
+  const randomValues = [0.5, 0.5, 0.5, 0.6, 0.7, 0.6, 0.7];
+  const context = {
+    console: { log() {} },
+    Date,
+    $environment: { "stash-version": "3.0.0" },
+    Math: Object.create(Math, {
+      random: {
+        value: () => randomValues.shift() ?? 0.6,
+      },
+    }),
+    $script: { startTime: 0 },
+    $argument:
+      "longitude=121.123456789&latitude=31.987654321&accuracy=25&logLevel=off",
+    $request: { url: "https://gs-loc.apple.com/clls/wloc" },
+    $persistentStore: {
+      read: (key) => store[key] ?? null,
+      write: (value, key) => {
+        store[key] = value;
+        return true;
+      },
+    },
+    $done() {},
+  };
+  vm.createContext(context);
+  vm.runInContext(
+    `${locationScript}\nglobalThis.__applyLocationJitter = applyLocationJitter;`,
+    context,
+  );
+
+  const result = context.__applyLocationJitter(
+    {
+      longitude: 121.123456789,
+      latitude: 31.987654321,
+      accuracy: 25,
+      altitude: null,
+      altitudeAccuracy: null,
+    },
+    1100,
+  );
+  const savedState = JSON.parse(store.wloc_jitter_v1);
+
+  assert.notEqual(result.targetAltitude, 5);
+  assert.ok(result.targetAltitude >= 5);
+  assert.ok(result.targetAltitude <= 15);
+  assert.ok(result.altitude >= 5);
+  assert.ok(result.altitude <= 15);
+  assert.notEqual(result.altitudeAccuracy, 30);
+  assert.ok(result.altitudeAccuracy >= 22);
+  assert.ok(result.altitudeAccuracy <= 38);
+  assert.equal(savedState.metadataVersion, 2);
 });
 
 test("parse API preserves natural coordinate precision", () => {
