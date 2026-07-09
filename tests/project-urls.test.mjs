@@ -37,6 +37,10 @@ const locationScript = await readFile(
   new URL("../dist/wloc.js", import.meta.url),
   "utf8",
 );
+const stashOverride = await readFile(
+  new URL("../modules/wloc.stoverride", import.meta.url),
+  "utf8",
+);
 
 test("operational URLs use this fork and its Worker domain", () => {
   const operationalText = [
@@ -134,4 +138,11 @@ test("parse API preserves natural coordinate precision", () => {
   assert.ok(pageSource.includes("'&lat=' + lat"));
   assert.equal(settingsScript.includes("parseFloat(l.get(\"lon\")"), true);
   assert.equal(workerIndexSource.includes("round6"), false);
+});
+
+test("Stash response scripts return binary bodies directly", () => {
+  assert.ok(stashOverride.includes("type: response"));
+  assert.ok(stashOverride.includes("require-body: true"));
+  assert.ok(stashOverride.includes("binary-mode: true"));
+  assert.ok(locationScript.includes('"Stash"===e?i(qe):i({response:qe})'));
 });
