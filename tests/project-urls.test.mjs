@@ -107,8 +107,8 @@ test("simulated location metadata is computed during response patching", () => {
   assert.equal(settingsScript.includes("altitudeAccuracy"), false);
   assert.equal(settingsScript.includes("l.get(\"altAcc\")"), false);
   assert.equal(settingsScript.includes("l.get(\"acc\")"), false);
-  assert.ok(locationScript.includes("Math.round(t.altitude)"));
-  assert.ok(locationScript.includes("Math.round(t.altitudeAccuracy)"));
+  assert.ok(locationScript.includes("Math.round(100*t.altitude)"));
+  assert.ok(locationScript.includes("Math.round(100*t.altitudeAccuracy)"));
   assert.ok(locationScript.includes("6===e.fieldNo&&0===e.wireType"));
   assert.ok(locationScript.includes("function simulatedAltitude()"));
   assert.ok(locationScript.includes("function nextVerticalAccuracy("));
@@ -164,7 +164,7 @@ test("response patch keeps valid system altitude metadata", () => {
   assert.equal(fields.get(6), 4567);
 });
 
-test("response patch replaces invalid system altitude sentinels", () => {
+test("response patch encodes simulated altitude metadata in centimeters", () => {
   const context = createLocationScriptContext();
   const message = encodeLocationMessage(context, {
     latitude: 31.987654321,
@@ -180,15 +180,15 @@ test("response patch replaces invalid system altitude sentinels", () => {
       latitude: 22.123456789,
       longitude: 113.987654321,
       accuracy: 18,
-      altitude: 9.87,
-      altitudeAccuracy: 31.23,
+      altitude: 15,
+      altitudeAccuracy: 30,
     },
     { locations: 0 },
   );
   const fields = decodeFields(context, patched);
 
-  assert.equal(fields.get(5), 10);
-  assert.equal(fields.get(6), 31);
+  assert.equal(fields.get(5), 1500);
+  assert.equal(fields.get(6), 3000);
 });
 
 test("simulated altitude ignores stale unversioned jitter state", () => {
